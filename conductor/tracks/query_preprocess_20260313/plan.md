@@ -1,22 +1,22 @@
 # Implementation Plan: Preprocess Arxiv Papers from Google Drive
 
 ## Phase 1: Infrastructure & Connection Setup
-- [ ] Task: Configure Google Drive API Access
-    - [ ] Create service account or OAuth credentials for Google Drive.
-    - [ ] Set up secure credential management (Databricks Secrets or `.env`).
-- [ ] Task: Set Up Databricks Delta Storage
-    - [ ] Write Tests: Verify connection and Delta table schema.
-    - [ ] Implement Delta table creation for Arxiv metadata in Unity Catalog.
-- [ ] Task: Conductor - User Manual Verification 'Infrastructure & Connection Setup' (Protocol in workflow.md)
+- [x] Task: Configure Google Drive API Access
+    - [x] Create service account or OAuth credentials for Google Drive.
+    - [x] Set up secure credential management (Databricks Secrets or `.env`).
+- [x] Task: Set Up Databricks Delta Storage
+    - [x] Write Tests: Verify connection and Delta table schema.
+    - [x] Implement Delta table creation for Arxiv metadata in Unity Catalog.
+- [x] Task: Conductor - User Manual Verification 'Infrastructure & Connection Setup' (Protocol in workflow.md)
 
 ## Phase 2: PDF Retrieval & Processing
-- [ ] Task: PDF Retrieval from Google Drive
-    - [ ] Write Tests: Verify querying and downloading PDF files from Drive.
-    - [ ] Implement Google Drive retrieval module.
-- [ ] Task: PDF Text Extraction & Preprocessing
-    - [ ] Write Tests: Verify text extraction accuracy for sample Arxiv PDFs.
-    - [ ] Implement PDF text extraction using a suitable library (e.g., `PyMuPDF` or `pypdf`).
-- [ ] Task: Arxiv Metadata Parsing
+- [x] Task: PDF Retrieval from Google Drive
+    - [x] Write Tests: Verify querying and downloading PDF files from Drive.
+    - [x] Implement Google Drive retrieval module.
+- [x] Task: PDF Text Extraction & Preprocessing
+    - [x] Write Tests: Verify text extraction accuracy for sample Arxiv PDFs.
+    - [x] Implement PDF text extraction using `docling`.
+- [~] Task: Arxiv Metadata Parsing
     - [ ] Write Tests: Verify metadata extraction (title, authors, etc.).
     - [ ] Implement metadata parser for extracted text or Arxiv API.
 - [ ] Task: Conductor - User Manual Verification 'PDF Retrieval & Processing' (Protocol in workflow.md)
