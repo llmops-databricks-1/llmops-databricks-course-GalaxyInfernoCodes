@@ -98,3 +98,6 @@ dmypy.json
 
 # Databricks
 .databricks/
+
+# Local artifacts
+artifacts/

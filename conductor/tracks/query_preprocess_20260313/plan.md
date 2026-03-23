@@ -25,6 +25,9 @@
 - [ ] Task: Metadata Ingestion to Delta
     - [ ] Write Tests: Verify end-to-end ingestion of metadata into Delta tables.
     - [ ] Implement metadata storage logic using Databricks Connect.
+- [ ] Task: PDF Storage to Databricks Volume
+    - [ ] Write Tests: Verify file upload to Databricks Volume.
+    - [ ] Implement Volume storage logic.
 - [ ] Task: Prepare Text for Vector Search Ingestion
     - [ ] Write Tests: Verify text formatting for Vector Search ingestion.
     - [ ] Implement text storage logic for subsequent indexing.

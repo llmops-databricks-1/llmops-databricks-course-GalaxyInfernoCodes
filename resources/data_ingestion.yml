@@ -1,0 +1,27 @@
+resources:
+  jobs:
+    download_pdfs_job:
+      name: download-pdfs
+      tags:
+        project_name: "llmops-databricks-course-GalaxyInfernoCodes"
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl
+
+      tasks:
+        - task_key: download_pdfs
+          environment_key: default
+          spark_python_task:
+            python_file: ../scripts/download_pdfs_from_gdrive.py
+            parameters:
+              - ${bundle.target}
+              - "${var.git_sha}"
+              - "{{job.run_id}}"
+              - "--root_path"
+              - ${var.root_path}
+              - "--project_config_path"
+              - "project_config.yaml"

@@ -8,6 +8,9 @@ variables:
   git_sha:
     description: "Git SHA of the deployed commit"
     default: "local"
+  root_path:
+    description: "Root path of the project in Databricks Workspace"
+    default: "/Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files/"
 
 artifacts:
   default:

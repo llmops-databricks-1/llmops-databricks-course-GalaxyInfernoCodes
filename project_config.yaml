@@ -1,0 +1,11 @@
+databricks:
+  catalog: dev
+  schema: braindrop
+  volume: paperpile_pdfs
+  secrets_scope: "llmops-project"
+  gdrive_secret_key: "drive-api-key"
+
+google_drive:
+  folder_id: "1eQGzqKgRpLDn2ytosZ_qniVjKhXhWG2Y"
+local:
+  artifacts_dir: "artifacts"

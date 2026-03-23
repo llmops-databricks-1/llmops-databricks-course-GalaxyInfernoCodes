@@ -1,5 +1,6 @@
 """Tests for Google Drive retrieval module."""
 
+from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -8,7 +9,7 @@ from braindrop.ingestion.gdrive_retrieval import GDriveClient
 
 
 @pytest.fixture
-def mock_gdrive_service() -> MagicMock:
+def mock_gdrive_service() -> Generator[MagicMock, None, None]:
     """Mock the Google Drive API service and credentials."""
     with (
         patch(

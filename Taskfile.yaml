@@ -1,0 +1,17 @@
+version: '3'
+
+tasks:
+  precommit:
+    desc: Run pre-commit hooks on all files
+    cmds:
+      - uv run pre-commit run --all-files
+
+  test:
+    desc: Run tests with pytest
+    cmds:
+      - uv run pytest
+
+  sync:
+    desc: Sync the environment with dev dependencies
+    cmds:
+      - uv sync --extra dev
