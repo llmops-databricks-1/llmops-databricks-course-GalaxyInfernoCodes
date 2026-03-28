@@ -15,3 +15,8 @@ tasks:
     desc: Sync the environment with dev dependencies
     cmds:
       - uv sync --extra dev
+
+  deploy:
+    desc: Deploy the project to Databricks
+    cmds:
+      - uv run databricks bundle deploy --profile sg-free

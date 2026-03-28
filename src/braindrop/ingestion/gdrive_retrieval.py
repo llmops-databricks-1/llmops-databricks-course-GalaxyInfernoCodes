@@ -1,35 +1,57 @@
 """Google Drive retrieval module for PDFs."""
 
 import io
+import json
 from pathlib import Path
 from typing import Any
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+from loguru import logger
+
+from braindrop.config import ProjectConfig
+from braindrop.ingestion.metadata_manager import MetadataManager
 
 
 class GDriveClient:
     """Client for interacting with Google Drive API."""
 
-    def __init__(self, service_account_info: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        config: ProjectConfig | None = None,
+        service_account_info: dict[str, Any] | None = None,
+    ) -> None:
         """Initialize GDriveClient.
 
-        If service_account_info is provided, use it.
-        Otherwise, fall back to default credentials.
+        Use credentials from Databricks Secrets if config is provided,
+        otherwise use provided service_account_info.
         """
         if service_account_info:
             self.creds = service_account.Credentials.from_service_account_info(
                 service_account_info,
                 scopes=["https://www.googleapis.com/auth/drive.readonly"],
             )
-        else:
-            # This will use GOOGLE_APPLICATION_CREDENTIALS if set
-            import google.auth
+        elif config:
+            # Import dbutils here to avoid triggering Databricks SDK init on module import
+            from databricks.sdk.runtime import dbutils
 
-            self.creds, _ = google.auth.default(
-                scopes=["https://www.googleapis.com/auth/drive.readonly"]
+            logger.info(
+                f"Fetching credentials from Databricks Secrets "
+                f"(scope: {config.databricks.secrets_scope}, "
+                f"key: {config.databricks.gdrive_secret_key})..."
             )
+
+            raw_json_str = dbutils.secrets.get(
+                scope=config.databricks.secrets_scope,
+                key=config.databricks.gdrive_secret_key,
+            )
+            self.creds = service_account.Credentials.from_service_account_info(
+                json.loads(raw_json_str),
+                scopes=["https://www.googleapis.com/auth/drive.readonly"],
+            )
+        else:
+            raise ValueError("Either config or service_account_info must be provided")
 
         self.service = build("drive", "v3", credentials=self.creds)
 
@@ -78,14 +100,19 @@ class GDriveClient:
 
 
 def download_pdfs_to_local(
-    folder_id: str, local_dir: Path, client: GDriveClient | None = None
+    folder_id: str,
+    local_dir: Path,
+    config: ProjectConfig | None = None,
+    client: GDriveClient | None = None,
 ) -> list[Path]:
     """Download all PDFs from a GDrive folder to a local directory.
 
     Returns a list of local paths to the downloaded files.
     """
     if client is None:
-        client = GDriveClient()
+        if config is None:
+            raise ValueError("config must be provided if client is None")
+        client = GDriveClient(config=config)
 
     local_dir.mkdir(parents=True, exist_ok=True)
     files = client.list_pdf_files(folder_id)
@@ -96,18 +123,18 @@ def download_pdfs_to_local(
         file_id = f["id"]
         local_path = local_dir / filename
 
-        print(f"Downloading: {filename}...")
+        logger.info(f"Downloading: {filename}...")
         try:
             content = client.download_file(file_id)
             if content:
                 with open(local_path, "wb") as pdf_file:
                     pdf_file.write(content)
                 downloaded_paths.append(local_path)
-                print(f"Saved to: {local_path}")
+                logger.info(f"Saved to: {local_path}")
             else:
-                print(f"Failed to download {filename}")
+                logger.error(f"Failed to download {filename}")
         except Exception as e:
-            print(f"Error downloading {filename}: {e}")
+            logger.error(f"Error downloading {filename}: {e}")
 
     return downloaded_paths
 
@@ -117,6 +144,7 @@ def download_pdfs_to_volume(
     catalog: str,
     schema: str,
     volume: str,
+    config: ProjectConfig,
     spark: Any = None,  # noqa: ANN401
     client: GDriveClient | None = None,
 ) -> list[str]:
@@ -127,7 +155,10 @@ def download_pdfs_to_volume(
     from braindrop.ingestion.volume_storage import save_to_volume
 
     if client is None:
-        client = GDriveClient()
+        client = GDriveClient(config=config)
+
+    metadata_manager = MetadataManager(spark, config)
+    metadata_manager.create_table()
 
     files = client.list_pdf_files(folder_id)
     saved_paths = []
@@ -136,16 +167,21 @@ def download_pdfs_to_volume(
         filename = f["name"]
         file_id = f["id"]
 
-        print(f"Downloading {filename} to Volume...")
+        if metadata_manager.does_pdf_exist(file_id):
+            logger.info(f"Skipping {filename} - already exists in Metadata table")
+            continue
+
+        logger.info(f"Downloading {filename} to Volume...")
         try:
             content = client.download_file(file_id)
             if content:
                 path = save_to_volume(spark, content, catalog, schema, volume, filename)
+                metadata_manager.insert_pdf(path, file_id)
                 saved_paths.append(path)
-                print(f"Saved to Volume: {path}")
+                logger.info(f"Saved to Volume: {path}")
             else:
-                print(f"Failed to download {filename}")
+                logger.error(f"Failed to download {filename}")
         except Exception as e:
-            print(f"Error downloading {filename} to volume: {e}")
+            logger.error(f"Error downloading {filename} to volume: {e}")
 
     return saved_paths

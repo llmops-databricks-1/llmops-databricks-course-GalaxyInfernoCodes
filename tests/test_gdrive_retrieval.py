@@ -41,7 +41,7 @@ def test_list_pdf_files_success(mock_gdrive_service: MagicMock) -> None:
 
     mock_gdrive_service.files().list.side_effect = side_effect
 
-    client = GDriveClient(service_account_info=None)
+    client = GDriveClient(service_account_info={})
     files = client.list_pdf_files(folder_id="folder123")
 
     assert len(files) == 2
@@ -77,7 +77,7 @@ def test_list_pdf_files_recursive(mock_gdrive_service: MagicMock) -> None:
 
     mock_gdrive_service.files().list.side_effect = side_effect
 
-    client = GDriveClient(service_account_info=None)
+    client = GDriveClient(service_account_info={})
     files = client.list_pdf_files(folder_id="root_folder")
 
     assert len(files) == 2
@@ -100,7 +100,7 @@ def test_download_file_success(
     mock_downloader_cls.return_value = mock_downloader
     mock_downloader.next_chunk.return_value = (None, True)  # (progress, done)
 
-    client = GDriveClient(service_account_info=None)
+    client = GDriveClient(service_account_info={})
     content = client.download_file(file_id="file1")
 
     assert content is not None
