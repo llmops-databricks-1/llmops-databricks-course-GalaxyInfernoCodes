@@ -28,6 +28,12 @@ def main() -> None:
     parser.add_argument(
         "--root_path", type=str, help="Root path of the project in Databricks Workspace"
     )
+    parser.add_argument(
+        "--max_files",
+        type=int,
+        default=10,
+        help="Maximum number of files to download",
+    )
 
     # Use parse_known_args to ignore extra parameters passed by Databricks jobs
     args, unknown = parser.parse_known_args()
@@ -78,6 +84,7 @@ def main() -> None:
             config=config,
             spark=spark,
             client=gdrive_client,
+            max_files=args.max_files,
         )
     else:
         logger.info("Running locally. Downloading to local artifacts directory...")
@@ -88,7 +95,11 @@ def main() -> None:
         artifacts_dir = project_root / config.local.artifacts_dir
 
         download_pdfs_to_local(
-            folder_id, artifacts_dir, config=config, client=gdrive_client
+            folder_id,
+            artifacts_dir,
+            config=config,
+            client=gdrive_client,
+            max_files=args.max_files,
         )
 
 

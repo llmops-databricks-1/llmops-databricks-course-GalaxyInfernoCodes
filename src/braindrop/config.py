@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml  # type: ignore[import-untyped]
+from loguru import logger
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,6 +13,8 @@ class DatabricksConfig(BaseModel):
     volume: str = "arxiv_pdfs"
     secrets_scope: str = "google-auth"
     gdrive_secret_key: str = "drive-api-key"
+    vector_search_endpoint: str = "llmops_course_vs_endpoint"
+    embedding_endpoint: str = "databricks-bge-endpoint-v2"
 
 
 class GoogleDriveConfig(BaseModel):
@@ -44,7 +47,7 @@ class ProjectConfig(BaseSettings):
                 found_path = p
             else:
                 # If not found at provided path, don't crash, just warn and try defaults
-                print(f"Warning: Config file not found at provided path: {p}")
+                logger.warning(f"Warning: Config file not found at provided path: {p}")
 
         if found_path is None:
             # Default lookup logic
@@ -59,16 +62,12 @@ class ProjectConfig(BaseSettings):
 
         yaml_data: dict[str, Any] = {}
         if found_path:
-            print(f"Loading config from: {found_path}")
+            logger.info(f"Loading config from: {found_path}")
             with open(found_path) as f:
                 yaml_data = yaml.safe_load(f) or {}
         else:
-            print(
+            logger.warning(
                 "No config file found. Using default settings and environment variables."
             )
 
         return cls(**yaml_data)
-
-
-# Global instance (default load)
-config = ProjectConfig.load()

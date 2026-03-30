@@ -7,6 +7,7 @@ from pathlib import Path
 
 from loguru import logger
 from pyspark.sql import SparkSession
+from tqdm import tqdm
 
 from braindrop.config import ProjectConfig
 from braindrop.parsing.data_processor import DataProcessor
@@ -45,20 +46,17 @@ volume = config.databricks.volume
 volume_path = f"/Volumes/{catalog}/{schema}/{volume}"
 logger.info(f"Searching for PDFs in volume: {volume_path}")
 
-try:
-    # Try to list files in the volume to find a PDF
-    files = spark.sql(f"LIST '{volume_path}'").collect()
-    pdf_file = next((f.path for f in files if f.path.lower().endswith(".pdf")), None)
-except Exception as e:
-    logger.error(f"Error listing volume: {e}")
-    pdf_file = None
-
 processor = DataProcessor(spark, config)
 
-if pdf_file:
-    logger.info(f"Found PDF in volume: {pdf_file}")
+try:
+    unparsed_pdf_paths = processor.get_unparsed_pdfs()
+except Exception as e:
+    logger.error(f"Error listing volume: {e}")
+    unparsed_pdf_paths = []
+
+logger.info(f"Found {len(unparsed_pdf_paths)} unparsed PDFs")
+
+for pdf_file in tqdm(unparsed_pdf_paths, desc="Parsing PDFs"):
+    logger.info(f"Parsing PDF: {pdf_file}")
 
     processor.parse_pdfs_with_ai(pdf_file)
-
-else:
-    logger.error(f"No PDFs found in the volume: {volume_path}")

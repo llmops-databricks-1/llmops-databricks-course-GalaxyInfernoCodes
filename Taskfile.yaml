@@ -1,5 +1,10 @@
 version: '3'
 
+dotenv: ['.env']
+
+vars:
+  DB_PROFILE: '{{default "sg-free" .DATABRICKS_CONFIG_PROFILE}}'
+
 tasks:
   precommit:
     desc: Run pre-commit hooks on all files
@@ -11,6 +16,17 @@ tasks:
     cmds:
       - uv run pytest
 
+  auth:
+    desc: Authenticate with Databricks for the current profile
+    cmds:
+      - databricks auth login --profile {{.DB_PROFILE}}
+      - echo "✓ Authenticated with profile '{{.DB_PROFILE}}'"
+
+  check-auth:
+    desc: Check current Databricks authentication status
+    cmds:
+      - databricks auth describe --profile {{.DB_PROFILE}}
+
   sync:
     desc: Sync the environment with dev dependencies
     cmds:
@@ -19,4 +35,31 @@ tasks:
   deploy:
     desc: Deploy the project to Databricks
     cmds:
-      - uv run databricks bundle deploy --profile sg-free
+      - uv run databricks bundle deploy --profile {{.DB_PROFILE}}
+
+  download-pdfs:
+    desc: Run the download_pdfs_job on Databricks
+    deps: [deploy]
+    cmds:
+      - uv run databricks bundle run download_pdfs_job --profile {{.DB_PROFILE}} --no-wait
+
+  parse-pdfs:
+    desc: Run the parse_pdfs_job on Databricks
+    deps: [deploy]
+    cmds:
+      - uv run databricks bundle run parse_pdfs_job --profile {{.DB_PROFILE}} --no-wait
+
+  create-embeddings:
+    desc: Run the create_embeddings_and_index_job on Databricks
+    deps: [deploy]
+    cmds:
+      - uv run databricks bundle run create_embeddings_and_index_job --profile {{.DB_PROFILE}} --no-wait
+
+  setup-secrets:
+    desc: Create secret scope and upload Google Drive credentials from file path in .env
+    vars:
+      SCOPE: '{{default "sarah-llmops-project" .SCOPE}}'
+    cmds:
+      - databricks secrets create-scope {{.SCOPE}} --profile {{.DB_PROFILE}} || true
+      - databricks secrets put-secret {{.SCOPE}} drive-api-key --string-value "$(cat $GOOGLE_DRIVE_API_KEY_PATH)" --profile {{.DB_PROFILE}}
+      - echo "✓ Secrets from '$GOOGLE_DRIVE_API_KEY_PATH' uploaded to scope '{{.SCOPE}}' using profile '{{.DB_PROFILE}}'"

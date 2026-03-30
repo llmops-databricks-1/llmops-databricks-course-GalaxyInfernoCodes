@@ -104,6 +104,7 @@ def download_pdfs_to_local(
     local_dir: Path,
     config: ProjectConfig | None = None,
     client: GDriveClient | None = None,
+    max_files: int | None = None,
 ) -> list[Path]:
     """Download all PDFs from a GDrive folder to a local directory.
 
@@ -116,10 +117,14 @@ def download_pdfs_to_local(
 
     local_dir.mkdir(parents=True, exist_ok=True)
     files = client.list_pdf_files(folder_id)
+    if max_files:
+        files = files[:max_files]
+
     downloaded_paths = []
 
     for f in files:
-        filename = f["name"]
+        # Sanitize filename by removing quotes
+        filename = f["name"].replace("'", "").replace('"', "")
         file_id = f["id"]
         local_path = local_dir / filename
 
@@ -147,6 +152,7 @@ def download_pdfs_to_volume(
     config: ProjectConfig,
     spark: Any = None,  # noqa: ANN401
     client: GDriveClient | None = None,
+    max_files: int | None = None,
 ) -> list[str]:
     """Download all PDFs from a GDrive folder directly to a Databricks Volume.
 
@@ -161,10 +167,14 @@ def download_pdfs_to_volume(
     metadata_manager.create_table()
 
     files = client.list_pdf_files(folder_id)
+    if max_files:
+        files = files[:max_files]
+
     saved_paths = []
 
     for f in files:
-        filename = f["name"]
+        # Sanitize filename by removing quotes
+        filename = f["name"].replace("'", "").replace('"', "")
         file_id = f["id"]
 
         if metadata_manager.does_pdf_exist(file_id):

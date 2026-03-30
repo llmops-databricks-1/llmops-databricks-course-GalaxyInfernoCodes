@@ -1,9 +1,11 @@
 databricks:
-  catalog: dev
-  schema: braindrop
+  catalog: mlops_dev
+  schema: galaxyin
   volume: paperpile_pdfs
-  secrets_scope: "llmops-project"
+  secrets_scope: "sarah-llmops-project"
   gdrive_secret_key: "drive-api-key"
+  vector_search_endpoint: "llmops_course_vs_endpoint"
+  embedding_endpoint: "databricks-bge-endpoint-v2"
 
 google_drive:
   folder_id: "1eQGzqKgRpLDn2ytosZ_qniVjKhXhWG2Y"

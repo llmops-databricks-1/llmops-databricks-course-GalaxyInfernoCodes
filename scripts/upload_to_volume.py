@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 from dotenv import load_dotenv
+from loguru import logger
 from pyspark.sql import SparkSession
 
 from braindrop.config import ProjectConfig
@@ -18,7 +19,9 @@ def get_spark() -> SparkSession:
 
         return DatabricksSession.builder.getOrCreate()
     except ImportError:
-        print("Databricks Connect not found, falling back to local SparkSession.")
+        logger.warning(
+            "Databricks Connect not found, falling back to local SparkSession."
+        )
         return SparkSession.builder.getOrCreate()
 
 
@@ -41,7 +44,7 @@ def main() -> None:
     args, unknown = parser.parse_known_args()
 
     if unknown:
-        print(f"Ignored unknown arguments: {unknown}")
+        logger.warning(f"Ignored unknown arguments: {unknown}")
 
     # Resolve the config path
     config_path = Path(args.project_config_path)
@@ -72,7 +75,7 @@ def main() -> None:
 
     pdf_files = list(artifacts_dir.glob("*.pdf"))
     if not pdf_files:
-        print(
+        logger.warning(
             f"No PDF files found in {artifacts_dir}. "
             "Please run download_pdfs_from_gdrive.py first."
         )

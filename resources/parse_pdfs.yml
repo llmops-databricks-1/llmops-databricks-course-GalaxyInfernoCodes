@@ -1,7 +1,7 @@
 resources:
   jobs:
-    download_pdfs_job:
-      name: download-pdfs
+    parse_pdfs_job:
+      name: parse-pdfs
       tags:
         project_name: "llmops-databricks-course-GalaxyInfernoCodes"
 
@@ -13,12 +13,10 @@ resources:
               - ../dist/*.whl
 
       tasks:
-        - task_key: download_pdfs
+        - task_key: parse_pdfs
           environment_key: default
           spark_python_task:
-            python_file: ../scripts/download_pdfs_from_gdrive.py
+            python_file: ../scripts/parse_pdfs.py
             parameters:
-              - "--root_path"
-              - "${var.root_path}"
               - "--project_config_path"
               - "${var.root_path}/project_config.yaml"
