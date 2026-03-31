@@ -16,7 +16,7 @@ resources:
         - task_key: download_pdfs
           environment_key: default
           spark_python_task:
-            python_file: ../scripts/download_pdfs_from_gdrive.py
+            python_file: ../scripts/01_download_pdfs_from_gdrive.py
             parameters:
               - "--root_path"
               - "${var.root_path}"

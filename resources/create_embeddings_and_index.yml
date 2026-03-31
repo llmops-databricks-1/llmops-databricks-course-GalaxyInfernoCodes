@@ -16,7 +16,7 @@ resources:
         - task_key: create_embeddings_and_index
           environment_key: default
           spark_python_task:
-            python_file: ../scripts/create_embeddings_and_index.py
+            python_file: ../scripts/03_create_embeddings_and_index.py
             parameters:
               - "--project_config_path"
               - "${var.root_path}/project_config.yaml"

@@ -1,3 +1,5 @@
+import os
+
 from databricks.sdk import WorkspaceClient
 from databricks.vector_search.client import VectorSearchClient
 from databricks.vector_search.index import VectorSearchIndex
@@ -24,12 +26,19 @@ class VectorSearchManager:
         self.endpoint_name = config.databricks.vector_search_endpoint
         self.embedding_model = config.databricks.embedding_endpoint
 
-        # Get credentials from WorkspaceClient for authentication
-        w = WorkspaceClient()
-        self.vs_client = VectorSearchClient(
-            workspace_url=w.config.host,
-            personal_access_token=w.tokens.create(lifetime_seconds=1200).token_value,
-        )
+        # Environment-aware authentication
+        if "DATABRICKS_RUNTIME_VERSION" in os.environ:
+            # On Databricks: Use session-based authentication (avoiding token creation)
+            self.vs_client = VectorSearchClient()
+        else:
+            # Locally (e.g., via Databricks Connect):
+            # Use profile/token based authentication
+            w = WorkspaceClient()
+            self.vs_client = VectorSearchClient(
+                workspace_url=w.config.host,
+                personal_access_token=w.tokens.create(lifetime_seconds=1200).token_value,
+            )
+
         self.index_name = f"{self.catalog}.{self.schema}.braindrop_index"
 
     def create_endpoint_if_not_exists(self) -> None:

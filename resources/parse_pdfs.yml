@@ -16,7 +16,7 @@ resources:
         - task_key: parse_pdfs
           environment_key: default
           spark_python_task:
-            python_file: ../scripts/parse_pdfs.py
+            python_file: ../scripts/02_parse_pdfs.py
             parameters:
               - "--project_config_path"
               - "${var.root_path}/project_config.yaml"

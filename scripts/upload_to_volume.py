@@ -1,3 +1,11 @@
+"""
+Upload a PDF from local to a Databricks Unity Catalog volume.
+
+Unused for actual project, but I'll keep it for reference on how to do this.
+For the actual project we use "download_pdfs_from_gdrive.py" to download the PDFs
+from Google Drive directly to the Databricks workspace.
+"""
+
 import argparse
 from pathlib import Path
 

@@ -1,3 +1,8 @@
+"""
+Helper script for debugging which cleans up
+the tables used for data ingestion to have a clean slate.
+"""
+
 import argparse
 import os
 from pathlib import Path

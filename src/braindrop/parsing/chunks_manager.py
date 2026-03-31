@@ -15,6 +15,60 @@ from pyspark.sql.types import ArrayType, StringType, StructField, StructType
 from braindrop.config import ProjectConfig
 
 
+@udf(
+    returnType=ArrayType(
+        StructType(
+            [
+                StructField("chunk_id", StringType(), True),
+                StructField("content", StringType(), True),
+            ]
+        )
+    )
+)
+def extract_chunks_udf(parsed_content_json: str) -> list[dict[str, str]]:
+    """
+    Extract chunks from parsed_content JSON string returned by ai_parse_document.
+    """
+    if not parsed_content_json:
+        return []
+
+    try:
+        parsed_dict = json.loads(parsed_content_json)
+        chunks = []
+
+        # Extract only text elements
+        for element in parsed_dict.get("document", {}).get("elements", []):
+            if element.get("type") == "text":
+                chunk_id = element.get("id", "")
+                content = element.get("content", "")
+                if content.strip():
+                    chunks.append({"chunk_id": chunk_id, "content": content})
+
+        return chunks
+    except Exception:
+        # In UDFs, it's better not to use complex loggers that might fail serialization
+        return []
+
+
+@udf(returnType=StringType())
+def clean_chunk_udf(text: str) -> str:
+    """
+    Clean and normalize chunk text:
+    - Join hyphenated words across line breaks
+    - Collapse newlines and extra spaces
+    """
+    if not text:
+        return ""
+
+    # Fix hyphenation: "docu-\nments" => "documents"
+    t = re.sub(r"(\w)-\s*\n\s*(\w)", r"\1\2", text)
+    # Collapse internal newlines and repeated whitespace into single spaces
+    t = re.sub(r"\s*\n\s*", " ", t)
+    t = re.sub(r"\s+", " ", t)
+
+    return t.strip()
+
+
 class ChunksManager:
     """
     ChunksManager handles extracting text elements from JSON-parsed documents,
@@ -37,49 +91,6 @@ class ChunksManager:
         self.chunks_table = f"`{self.catalog}`.`{self.schema}`.`chunks_table`"
         self.source_table = f"`{self.catalog}`.`{self.schema}`.`source_pdfs`"
 
-    @staticmethod
-    def _extract_chunks(parsed_content_json: str) -> list[tuple[str, str]]:
-        """
-        Extract chunks from parsed_content JSON string returned by ai_parse_document.
-        """
-        if not parsed_content_json:
-            return []
-
-        try:
-            parsed_dict = json.loads(parsed_content_json)
-            chunks = []
-
-            # Extract only text elements
-            for element in parsed_dict.get("document", {}).get("elements", []):
-                if element.get("type") == "text":
-                    chunk_id = element.get("id", "")
-                    content = element.get("content", "")
-                    if content.strip():
-                        chunks.append((chunk_id, content))
-
-            return chunks
-        except Exception as e:
-            logger.error(f"Error parsing JSON content: {e}")
-            return []
-
-    @staticmethod
-    def _clean_chunk(text: str) -> str:
-        """
-        Clean and normalize chunk text:
-        - Join hyphenated words across line breaks
-        - Collapse newlines and extra spaces
-        """
-        if not text:
-            return ""
-
-        # Fix hyphenation: "docu-\nments" => "documents"
-        t = re.sub(r"(\w)-\s*\n\s*(\w)", r"\1\2", text)
-        # Collapse internal newlines and repeated whitespace into single spaces
-        t = re.sub(r"\s*\n\s*", " ", t)
-        t = re.sub(r"\s+", " ", t)
-
-        return t.strip()
-
     def process_chunks(self) -> None:
         """
         Process parsed documents to extract and clean chunks.
@@ -92,17 +103,17 @@ class ChunksManager:
             logger.error(f"Table {self.parsed_table} does not exist. Run parsing first.")
             return
 
-        # 1. Define UDFs
-        chunk_schema = ArrayType(
-            StructType(
-                [
-                    StructField("chunk_id", StringType(), True),
-                    StructField("content", StringType(), True),
-                ]
+        # 1. Prepare metadata from source table
+        # Ensure schema and source table exist or handle missing metadata gracefully
+        try:
+            metadata_df = self.spark.table(self.source_table).select(
+                col("volume_path"),
+                col("title"),
+                concat_ws(", ", col("authors")).alias("authors"),
             )
-        )
-        extract_chunks_udf = udf(self._extract_chunks, chunk_schema)
-        clean_chunk_udf = udf(self._clean_chunk, StringType())
+        except Exception as e:
+            logger.warning(f"Could not load metadata from {self.source_table}: {e}")
+            metadata_df = None
 
         # 2. Transform: Parse JSON -> Explode -> Clean -> Join
         parsed_df = self.spark.table(self.parsed_table)
@@ -120,11 +131,15 @@ class ChunksManager:
             )
         )
 
-        # 3. Save to Delta table
+        # 3. Join with metadata if available
+        if metadata_df:
+            chunks_df = chunks_df.join(metadata_df, "volume_path", "left")
+
+        # 4. Save to Delta table
         logger.info(f"Saving chunks to {self.chunks_table}")
         chunks_df.write.mode("overwrite").saveAsTable(self.chunks_table)
 
-        # 4. Enable Change Data Feed for the Vector Search index
+        # 5. Enable Change Data Feed for the Vector Search index
         self.spark.sql(
             f"ALTER TABLE {self.chunks_table} "
             "SET TBLPROPERTIES (delta.enableChangeDataFeed = true)"
