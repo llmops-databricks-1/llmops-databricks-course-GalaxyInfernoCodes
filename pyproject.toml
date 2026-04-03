@@ -1,7 +1,7 @@
 [project]
-name = "llmops-databricks-course-GalaxyInfernoCodes"
+name = "braindrop"
 dynamic = ["version"]
-description = "llmops-databricks-course-GalaxyInfernoCodes - LLMOps Course on Databricks"
+description = "braindrop - LLMOps Course on Databricks"
 requires-python = ">=3.12, <3.13"
 dependencies = [
     "cffi==1.17.1",
@@ -23,7 +23,14 @@ dependencies = [
     "databricks-agents==1.8.2",
     "psycopg==3.3.2",
     "psycopg-pool==3.3.0",
-    "psycopg[binary]==3.3.2"
+    "psycopg[binary]==3.3.2",
+    "google-api-python-client>=2.192.0",
+    "google-auth-httplib2>=0.3.0",
+    "google-auth-oauthlib>=1.3.0",
+    "docling>=2.79.0",
+    "pyyaml>=6.0.3",
+    "pydantic-settings>=2.13.1",
+    "tqdm>=4.67.3",
 ]
 
 [project.optional-dependencies]
@@ -31,24 +38,32 @@ dev = ["databricks-connect>=17.0, <18",
        "ipykernel>=6.29.5, <7",
        "pip>=25.0.1, <26",
        "pre-commit>=4.1.0, <5",
-       "claudetracing>=0.2.0, <1",]
+       "claudetracing>=0.2.0, <1",
+       "mypy>=1.0.0, <2",]
 
 ci = ["pre-commit>=4.1.0, <5",
-      "pytest>=8.3.4, <9"]
+      "pytest>=8.3.4, <9",
+      "mypy>=1.0.0, <2",]
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.package-data]
-"your_custom_package" = ["../../../project_config.yml"]
+"braindrop" = ["../../../project_config.yml"]
 
 [build-system]
 requires = ["setuptools>=72.0"]
 build-backend = "setuptools.build_meta"
 
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "types-pyyaml>=6.0.12.20250915",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["your_custom_package*"]
+include = ["braindrop*"]
 
 [tool.setuptools.dynamic]
 version = { file = "version.txt" }
@@ -61,6 +76,7 @@ pythonpath = ["."]
 [tool.ruff]
 line-length = 90
 
+[tool.ruff.lint]
 select = [
     "F",    # pyflakes rules
     "E",    # pycodestyle error rules
@@ -80,9 +96,7 @@ ignore = [
     "D213",   # multi-line-summary-second-line
     "C901",   # too complex
     "ERA001", # commented out code
-    "ANN204",
-    "ANN102",
-    "ANN101"
+    "ANN204"
 ]
 
 [tool.ruff.format]

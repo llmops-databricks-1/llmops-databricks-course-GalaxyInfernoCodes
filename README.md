@@ -1,28 +1,58 @@
 <h1 align="center">
-LLMOps Course on Databricks
+LLMOps Course on Databricks: Braindrop
 </h1>
 
-## Practical information
-- Weekly lectures on Wednesdays 16:00-18:00 CET.
-- Weekly Q&A on Mondays 16:00-17:00 CET.
-- Code for the lecture is shared before the lecture.
-- Presentation and lecture materials are shared right after the lecture.
-- Video of the lecture is uploaded within 24 hours after the lecture.
+## Project Overview
+Braindrop is a modular RAG (Retrieval-Augmented Generation) pipeline built on Databricks. It automates the transition from unstructured PDF documents in Google Drive to a structured, searchable knowledge base for LLMs.
 
-- Every week we set up a deliverable, and you implement it with your own dataset.
-- To submit the deliverable, create a feature branch in that repository, and a PR to main branch. The code can be merged after we review & approve & CI pipeline runs successfully.
-- The deliverables can be submitted with a delay (for example, lecture 1 & 2 together), but we expect you to finish all assignments for the course before the demo day.
+### The 3-Stage Pipeline
+The data flow is managed through Databricks Asset Bundles (DABs) and organized into three sequential jobs:
 
+1.  **01 Ingestion (`task download-pdfs`):** Downloads PDFs from Google Drive to a Databricks Volume and registers them in the `source_pdfs` table.
+2.  **02 Extraction (`task parse-pdfs`):** Uses Databricks `ai_parse_document` to convert binary PDFs into structured JSON/Markdown.
+3.  **03 Indexing (`task create-embeddings`):** Chunks and cleans the parsed text, then synchronizes it with a Databricks Vector Search index for semantic retrieval.
 
-## Set up your environment
-In this course, we use serverless environment 4, which uses Python 3.12.
-In our examples, we use UV. Check out the documentation on how to install it: https://docs.astral.sh/uv/getting-started/installation/
+## Setup & Deployment
 
-To create a new environment and create a lockfile, run:
+### Prerequisites
+- **UV:** Used for dependency management. Install via [astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/).
+- **Databricks CLI:** Configured with a profile (e.g., `sg-free` or `cauchy`).
+- **Secrets:** A Databricks Secret Scope named `llmops-project` must contain a `drive-api-key` (Google Service Account JSON) to access the PDF source.
+    - You can use `task setup-secrets` to automate this if your `.env` is configured.
 
-```
+### Environment Setup
+Create a local virtual environment and install dependencies:
+```bash
 uv sync --extra dev
 ```
 
+### Authentication & Secrets
+Ensure you are logged into your workspace and your secrets are uploaded:
+```bash
+task auth
+task setup-secrets
+```
 
+We need credentials to access the Google Drive folder containing the PDFs. These credentials are stored in a Databricks Secret Scope named `sarah-llmops-project` under the key `drive-api-key`. The download-job then uses these credentials to download the PDFs to a Databricks Volume.
 
+### Common Commands (Taskfile)
+I have designed and deployed 3 jobs to Databricks:
+1. download-pdfs: Downloads PDFs from Google Drive to a Databricks Volume and registers them in the `source_pdfs` table.
+2. parse-pdfs: Uses Databricks `ai_parse_document` to convert binary PDFs into structured JSON/Markdown.
+3. create-embeddings: Chunks and cleans the parsed text, then synchronizes it with a Databricks Vector Search index for semantic retrieval.
+
+I have also created a Taskfile to automate the deployment and triggering of these jobs. All jobs are designed as scripts and deployed via Databricks Asset Bundles.
+
+| Command | Description |
+| :--- | :--- |
+| `task deploy` | Deploys the Databricks Asset Bundle to the workspace. |
+| `task download-pdfs` | Triggers the GDrive ingestion job. |
+| `task parse-pdfs` | Triggers the AI document parsing job. |
+| `task create-embeddings` | Processes chunks and syncs the Vector Search index. |
+| `task check-auth` | Verifies your current Databricks CLI connection. |
+
+## Querying the RAG System
+Once the pipeline has finished and the Vector Search index is "Online," you can use the example notebook in `notebooks/rag_query_example.py` to ask questions against your PDF library using Databricks Foundation Models (like DBRX).
+
+---
+*Developed as part of the LLMOps Databricks Course.*

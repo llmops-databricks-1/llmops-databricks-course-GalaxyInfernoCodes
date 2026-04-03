@@ -1,0 +1,13 @@
+databricks:
+  catalog: mlops_dev
+  schema: galaxyin
+  volume: paperpile_pdfs
+  secrets_scope: "sarah-llmops-project"
+  gdrive_secret_key: "drive-api-key"
+  vector_search_endpoint: "llmops_course_vs_endpoint"
+  embedding_endpoint: "databricks-bge-large-en"
+
+google_drive:
+  folder_id: "1eQGzqKgRpLDn2ytosZ_qniVjKhXhWG2Y"
+local:
+  artifacts_dir: "artifacts"

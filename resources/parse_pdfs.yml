@@ -1,7 +1,7 @@
 resources:
   jobs:
-    hello_world_job:
-      name: hello-world
+    parse_pdfs_job:
+      name: parse-pdfs
       tags:
         project_name: "llmops-databricks-course-GalaxyInfernoCodes"
 
@@ -13,11 +13,10 @@ resources:
               - ../dist/*.whl
 
       tasks:
-        - task_key: hello_world
+        - task_key: parse_pdfs
           environment_key: default
-          notebook_task:
-            notebook_path: ../notebooks/hello_world.py
-            base_parameters:
-              env: ${bundle.target}
-              git_sha: "${var.git_sha}"
-              run_id: "{{job.run_id}}"
+          spark_python_task:
+            python_file: ../scripts/02_parse_pdfs.py
+            parameters:
+              - "--project_config_path"
+              - "${var.root_path}/project_config.yaml"
